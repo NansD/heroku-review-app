@@ -135,8 +135,9 @@ async function run() {
         const build = await latestBuilds.find(build => appId === build.app.id);
         if (!build) {
           core.error(`Could not find build matching app id ${appId}.`);
-          core.setFailed(`No existing build for app ID ${appId} matches version ${version}`);
-          throw new Error(`Unexpected build status: "${status}" yet no matching build found`);
+          return false;
+          // core.setFailed(`No existing build for app ID ${appId} matches version ${version}`);
+          // throw new Error(`Unexpected build status: "${status}" yet no matching build found`);
         }
         core.info(`Found build matching version ${version} OK: ${JSON.stringify(build)}`);
 
