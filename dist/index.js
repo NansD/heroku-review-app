@@ -1508,9 +1508,9 @@ async function run() {
         core.debug(`Fetched latest builds for pipeline ${appId} OK: ${latestBuilds.length} builds found.`);
 
         core.debug(`Finding build matching version ${version}...`);
-        const build = await latestBuilds.find(build => version === build.source_blob.version);
+        const build = await latestBuilds.find(build => appId === build.app.id);
         if (!build) {
-          core.error(`Could not find build matching version ${version}.`);
+          core.error(`Could not find build matching app id ${appId}.`);
           core.setFailed(`No existing build for app ID ${appId} matches version ${version}`);
           throw new Error(`Unexpected build status: "${status}" yet no matching build found`);
         }
