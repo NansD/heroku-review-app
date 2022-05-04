@@ -90,7 +90,9 @@ async function run() {
       core.debug(`Review apps: ${JSON.stringify(reviewApps)}`);
 
       core.debug(`Finding review app for PR #${prNumber}...`);
-      const app = reviewApps.find(app => app.pr_number === prNumber);
+      const apps = reviewApps.filter(app => app.pr_number === prNumber);
+      // in the case of multiple review apps for the same branch, take the latest one
+      const app = apps.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
       if (app) {
         const { status } = app;
         if ('errored' === status) {
