@@ -75,6 +75,7 @@ async function run() {
 
     const outputAppDetails = (app) => {
       core.startGroup('Output app details');
+      core.debug(`App details: ${JSON.stringify(app)}`);
       const {
         id: appId,
         web_url: webUrl,
