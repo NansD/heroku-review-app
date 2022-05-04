@@ -87,6 +87,7 @@ async function run() {
       core.debug(`Listing review apps: "${apiUrl}"`);
       const reviewApps = await heroku.get(apiUrl);
       core.info(`Listed ${reviewApps.length} review apps OK: ${reviewApps.length} apps found.`);
+      core.debug(`Review apps: ${JSON.stringify(reviewApps)}`);
 
       core.debug(`Finding review app for PR #${prNumber}...`);
       const app = reviewApps.find(app => app.pr_number === prNumber);
