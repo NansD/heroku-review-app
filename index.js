@@ -275,9 +275,14 @@ async function run() {
     // });
 
     const app = await findReviewApp();
-    if (!app) {
-      await createReviewApp();
+    // as we can't update an existing review app, we need to delete and create a new one
+    if (app) {
+      core.debug('A review app already exists. Delete the old one...');
+      await heroku.delete(`/review-apps/${app.id}`);
+      core.debug('Review app deleted OK, now build a new one...');
     }
+    await createReviewApp();
+
     const updatedApp = await waitReviewAppUpdated();
     outputAppDetails(updatedApp);
 
