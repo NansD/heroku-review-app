@@ -1574,7 +1574,7 @@ async function run() {
         };
         core.debug(`Creating heroku review app: ${JSON.stringify(body)}`);
         const app = await heroku.post('/review-apps', { body });
-        core.info('Created review app OK:', app);
+        core.info(`Created review app OK: ${JSON.stringify(app)}`);
         core.endGroup();
 
         return app;
@@ -1627,6 +1627,7 @@ async function run() {
       if (newLabelAddedName === prLabel) {
         core.info(`Checked PR label: "${newLabelAddedName}", so need to create review app...`);
         const newlyCreatedApp = await createReviewApp();
+        core.debug(`Created review app OK: ${JSON.stringify(newlyCreatedApp)}`);
 
         let updatedApp;
         core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
