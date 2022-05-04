@@ -252,6 +252,7 @@ async function run() {
         const newlyCreatedApp = await createReviewApp();
 
         let updatedApp;
+        core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
         if (shouldWaitForBuild) {
           await waitReviewAppUpdated();
         } else {
@@ -296,6 +297,7 @@ async function run() {
     }
     const newlyCreatedApp = await createReviewApp();
 
+    core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
     let updatedApp;
     if (shouldWaitForBuild) {
       await waitReviewAppUpdated();
