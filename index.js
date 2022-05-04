@@ -15,10 +15,10 @@ async function run() {
       required: false,
       default: false,
     });
-    const shouldWaitForBuild = core.getInput('should_wait_for_build', {
+    const shouldWaitForBuild = JSON.parse(core.getInput('should_wait_for_build', {
       required: false,
       default: true,
-    });
+    }));
     const herokuApiToken = core.getInput('heroku_api_token', {
       required: true,
     });
