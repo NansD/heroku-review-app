@@ -1391,6 +1391,10 @@ async function run() {
       required: false,
       default: false,
     });
+    const shouldWaitForBuild = core.getInput('should_wait_for_build', {
+      required: false,
+      default: true,
+    });
     const herokuApiToken = core.getInput('heroku_api_token', {
       required: true,
     });
@@ -1621,11 +1625,17 @@ async function run() {
       } = github.context;
       if (newLabelAddedName === prLabel) {
         core.info(`Checked PR label: "${newLabelAddedName}", so need to create review app...`);
-        await createReviewApp();
-        const app = await waitReviewAppUpdated();
-        outputAppDetails(app);
+        const newlyCreatedApp = await createReviewApp();
+
+        let updatedApp;
+        if (shouldWaitForBuild) {
+          await waitReviewAppUpdated();
+        } else {
+          updatedApp = getAppDetails(newlyCreatedApp.app.id);
+        }
+        outputAppDetails(updatedApp);
       } else {
-        core.info('Checked PR label OK: "${newLabelAddedName}", no action required.');
+        core.info(`Checked PR label OK: "${newLabelAddedName}", no action required.`);
       }
       core.endGroup();
       return;
@@ -1660,9 +1670,14 @@ async function run() {
       await heroku.delete(`/review-apps/${app.id}`);
       core.debug('Review app deleted OK, now build a new one...');
     }
-    await createReviewApp();
+    const newlyCreatedApp = await createReviewApp();
 
-    const updatedApp = await waitReviewAppUpdated();
+    let updatedApp;
+    if (shouldWaitForBuild) {
+      await waitReviewAppUpdated();
+    } else {
+      updatedApp = getAppDetails(newlyCreatedApp.app.id);
+    }
     outputAppDetails(updatedApp);
 
     if (prLabel) {
