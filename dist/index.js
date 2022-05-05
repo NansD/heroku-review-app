@@ -1634,7 +1634,7 @@ async function run() {
         if (shouldWaitForBuild) {
           await waitReviewAppUpdated();
         } else {
-          updatedApp = getAppDetails(newlyCreatedApp.app.id);
+          updatedApp = getAppDetails(newlyCreatedApp.id);
         }
         outputAppDetails(updatedApp);
       } else {
@@ -1680,7 +1680,7 @@ async function run() {
     if (shouldWaitForBuild) {
       await waitReviewAppUpdated();
     } else {
-      updatedApp = getAppDetails(newlyCreatedApp.app.id);
+      updatedApp = getAppDetails(newlyCreatedApp.id);
     }
     outputAppDetails(updatedApp);
 
