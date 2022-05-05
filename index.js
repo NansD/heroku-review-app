@@ -328,11 +328,19 @@ async function run() {
     if (shouldCommentPR) {
       core.startGroup('Comment on PR');
       core.debug('Adding comment to PR...');
-      await octokit.rest.issues.createComment({
-        ...repo,
-        issue_number: prNumber,
-        body: `Review app deployed to ${updatedApp.web_url}`,
-      });
+      if (shouldWaitForBuild) {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: prNumber,
+          body: `Review app deployed to ${updatedApp.web_url}`,
+        });
+      } else {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: prNumber,
+          body: `Review app is being deployed to ${updatedApp.web_url}`,
+        });
+      }
       core.info('Added comment to PR... OK');
       core.endGroup();
     } else {
