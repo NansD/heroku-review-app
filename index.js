@@ -201,7 +201,7 @@ async function run() {
         core.info(`Created review app OK: ${JSON.stringify(app)}`);
         core.endGroup();
 
-        return app;
+        return findReviewApp();
       } catch (err) {
         // 409 indicates duplicate; anything else is unexpected
         if (err.statusCode !== 409) {
@@ -256,9 +256,9 @@ async function run() {
         let updatedApp;
         core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
         if (shouldWaitForBuild) {
-          await waitReviewAppUpdated();
+          updatedApp = await waitReviewAppUpdated();
         } else {
-          updatedApp = await getAppDetails(newlyCreatedApp.id);
+          updatedApp = await getAppDetails(newlyCreatedApp.app.id);
         }
         outputAppDetails(updatedApp);
       } else {
@@ -304,7 +304,7 @@ async function run() {
     if (shouldWaitForBuild) {
       await waitReviewAppUpdated();
     } else {
-      updatedApp = await getAppDetails(newlyCreatedApp.id);
+      updatedApp = await getAppDetails(newlyCreatedApp.app.id);
     }
     outputAppDetails(updatedApp);
 
