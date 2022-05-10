@@ -34,6 +34,7 @@ jobs:
 
 - **github_token** - Github API access token; needs scope to add label to issue
 - **github_label** - Text of what label should be added to each PR. If this label is added, it triggers a new build
+- **should_wait_for_build** - If true, the action will wait for the app to be built on Heroku before ending (default: true)
 - **should_comment_pull_request** - If true, a comment will be added to the PR when the review app is deployed
 - **heroku_api_token** - Heroku API Token; generate this under your personal settings in Heroku
 - **heroku_pipeline_id** - Pipeline ID configured to use review apps. You can get this from the URL in your browser.

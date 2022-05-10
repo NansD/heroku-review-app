@@ -1,6 +1,7 @@
 const Heroku = require('heroku-client');
 const core = require('@actions/core');
 const github = require('@actions/github');
+const waitSeconds = secs => new Promise(resolve => setTimeout(resolve, secs * 1000));
 
 const VALID_EVENT = 'pull_request';
 
@@ -15,6 +16,10 @@ async function run() {
       required: false,
       default: false,
     });
+    const shouldWaitForBuild = JSON.parse(core.getInput('should_wait_for_build', {
+      required: false,
+      default: true,
+    }));
     const herokuApiToken = core.getInput('heroku_api_token', {
       required: true,
     });
@@ -71,6 +76,7 @@ async function run() {
 
     const outputAppDetails = (app) => {
       core.startGroup('Output app details');
+      core.debug(`App details: ${JSON.stringify(app)}`);
       const {
         id: appId,
         web_url: webUrl,
@@ -82,14 +88,17 @@ async function run() {
       core.endGroup();
     };
 
-    const findReviewApp = async () => {
+    const findReviewApp = async (withAppId = false) => {
       const apiUrl = `/pipelines/${herokuPipelineId}/review-apps`;
       core.debug(`Listing review apps: "${apiUrl}"`);
       const reviewApps = await heroku.get(apiUrl);
       core.info(`Listed ${reviewApps.length} review apps OK: ${reviewApps.length} apps found.`);
+      core.debug(`Review apps: ${JSON.stringify(reviewApps)}`);
 
       core.debug(`Finding review app for PR #${prNumber}...`);
-      const app = reviewApps.find(app => app.pr_number === prNumber);
+      const apps = reviewApps.filter(app => app.pr_number === prNumber);
+      // in the case of multiple review apps for the same branch, take the latest one
+      const app = apps.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
       if (app) {
         const { status } = app;
         if ('errored' === status) {
@@ -100,14 +109,15 @@ async function run() {
       } else {
         core.info(`No review app found for PR #${prNumber}`);
       }
+      if (withAppId && !app.app) {
+        await waitSeconds(5);
+        return findReviewApp(withAppId);
+      }
       return app;
     };
 
     const waitReviewAppUpdated = async () => {
       core.startGroup('Ensure review app is up to date');
-
-      const waitSeconds = secs => new Promise(resolve => setTimeout(resolve, secs * 1000));
-
       const checkBuildStatusForReviewApp = async (app) => {
         core.debug(`Checking build status for app: ${JSON.stringify(app)}`);
         if ('pending' === app.status || 'creating' === app.status) {
@@ -190,7 +200,7 @@ async function run() {
         };
         core.debug(`Creating heroku review app: ${JSON.stringify(body)}`);
         const app = await heroku.post('/review-apps', { body });
-        core.info('Created review app OK:', app);
+        core.info(`Created review app OK: ${JSON.stringify(app)}`);
         core.endGroup();
 
         return app;
@@ -243,10 +253,18 @@ async function run() {
       if (newLabelAddedName === prLabel) {
         core.info(`Checked PR label: "${newLabelAddedName}", so need to create review app...`);
         await createReviewApp();
-        const app = await waitReviewAppUpdated();
-        outputAppDetails(app);
+
+        let updatedApp;
+        core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
+        if (shouldWaitForBuild) {
+          updatedApp = await waitReviewAppUpdated();
+        } else {
+          const reviewApp = await findReviewApp(true);
+          updatedApp = await getAppDetails(reviewApp.app.id);
+        }
+        outputAppDetails(updatedApp);
       } else {
-        core.info('Checked PR label OK: "${newLabelAddedName}", no action required.');
+        core.info(`Checked PR label OK: "${newLabelAddedName}", no action required.`);
       }
       core.endGroup();
       return;
@@ -275,10 +293,22 @@ async function run() {
     // });
 
     const app = await findReviewApp();
-    if (!app) {
-      await createReviewApp();
+    // as we can't update an existing review app, we need to delete and create a new one
+    if (app) {
+      core.debug('A review app already exists. Delete the old one...');
+      await heroku.delete(`/review-apps/${app.id}`);
+      core.debug('Review app deleted OK, now build a new one...');
     }
-    const updatedApp = await waitReviewAppUpdated();
+    await createReviewApp();
+
+    core.debug(`should_wait_for_build: ${shouldWaitForBuild}`);
+    let updatedApp;
+    if (shouldWaitForBuild) {
+      await waitReviewAppUpdated();
+    } else {
+      const reviewApp = await findReviewApp(true);
+      updatedApp = await getAppDetails(reviewApp.app.id);
+    }
     outputAppDetails(updatedApp);
 
     if (prLabel) {
@@ -298,11 +328,19 @@ async function run() {
     if (shouldCommentPR) {
       core.startGroup('Comment on PR');
       core.debug('Adding comment to PR...');
-      await octokit.rest.issues.createComment({
-        ...repo,
-        issue_number: prNumber,
-        body: `Review app deployed to ${updatedApp.web_url}`,
-      });
+      if (shouldWaitForBuild) {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: prNumber,
+          body: `Review app deployed to ${updatedApp.web_url}`,
+        });
+      } else {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: prNumber,
+          body: `Review app is being deployed to ${updatedApp.web_url}`,
+        });
+      }
       core.info('Added comment to PR... OK');
       core.endGroup();
     } else {
